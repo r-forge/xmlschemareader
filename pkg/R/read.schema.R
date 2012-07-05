@@ -527,7 +527,7 @@ namespaces
 
 	if ((elBaseType=='xs:decimal') || (elBaseType=='xs:double') || (elBaseType=='xs:float'))
 	{
-		eBT="real"
+		eBT="numeric"
 	}
 	else if (elBaseType=='xs:integer') 
 	{
@@ -959,14 +959,15 @@ namespaces
 
 
 
-getNamespace<-function
+getNamespaceDefinitions<-function
 ### Gives the namspace definitions present in the given XML Schema document
-(doc
+(schemaDoc
 ### The name of the XML Schema document
 )
 {
-  
-  getNamespaceDefinitions(doc, simplify=TRUE)
+  s<-xmlTreeParse(schemaDoc, getDTD=FALSE)  
+  rootNode<-xmlRoot(s)
+  xmlNamespaceDefinitions(rootNode, simplify=TRUE)
 ### Returns the namespace definitions in the given XML Schema document
   
 }
