@@ -12,10 +12,10 @@ Author: \tab Lucy Bastin and Ankita Goyal\cr
 Maintainer: \tab Lucy Bastin and Ankita Goyal\cr
 Depends: \tab R (>= 2.5.0), XML\cr
 License: \tab GPL-2\cr
-Packaged: \tab 2009-10-31 19:51:30 UTC; alex_a\cr
+Packaged: \tab 2012-06-27 17:34:06\cr
 Repository: \tab CRAN\cr
-Date/Publication: \tab 2009-11-01 17:34:06\cr
-Built: \tab R 2.9.2; ; 2009-11-01 19:21:35 UTC; windows\cr}
+Date/Publication: \tab 2012-06-27 17:34:06\cr
+Built: \tab R 2.9.2; ; 2012-06-27 17:34:06 UTC; windows\cr}
 }
 \author{Lucy Bastin and Ankita Goyal}
 
