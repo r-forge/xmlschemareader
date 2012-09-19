@@ -1,14 +1,11 @@
 Package: xmlschemaReader
-Type: Package
 Title: Tools for reading XML Schema within R
 Version: 0.1.0
 Date: 2012-06-27
-Author: Lucy Bastin and Ankita Goyal
-Maintainer: Lucy Bastin <l.bastin@aston.ac.uk>
 Depends: R (>= 2.5.0), XML
 Description: Reads simple XML schema and returns details of user-specified elements
-License: GPL
-Packaged: 2012-06-27 17:34:06
+Author: Lucy Bastin and Ankita Goyal
+Maintainer: Lucy Bastin <l.bastin@aston.ac.uk>
+License: GPL (>= 2)
 Repository: CRAN
-Date/Publication: 2012-06-27 17:34:06
-Built: R 2.9.2; ; 2012-06-27 17:34:06 UTC; windows
+
