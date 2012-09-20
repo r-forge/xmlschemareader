@@ -1,7 +1,7 @@
 Package: xmlschemaReader
 Title: Tools for reading XML Schema within R
-Version: 0.1.0
-Date: 2012-06-27
+Version: 0.1.1
+Date: 2012-09-20
 Depends: R (>= 2.5.0), XML
 Description: Reads simple XML schema and returns details of user-specified elements
 Author: Lucy Bastin and Ankita Goyal
