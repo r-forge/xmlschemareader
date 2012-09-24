@@ -4,28 +4,31 @@ library("XML")
 getAttributesAndElementsForElementName <- function
 ### Gives the type and restrictions on the values of the child elements and attributes for a given element in the document
 (theEName,
-### The name of the element whose details are needed
+### (string) The name of the element whose details are needed
 theXMLdoc,
-### The XML schema document in which the element is present
-theNamespace
-### The namespaces present in the document
+### (XMLInternalDocument OR string) Either: the XML schema document in which the element is present. This should have been read using xmlParseDoc or be supplied in the R workspace.
+### OR the path to the XML document which is to be read.
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
-  logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
-  #------------------------- TEMP - print out details --------------------------- #
-  if (logLevel==2)
+  if (is.character(theXMLdoc)) 
   {
-    print(paste("Getting typedef for element name: ",theEName, sep=""))
+     docPath <- theXMLdoc
+     theXMLdoc<- xmlParseDoc(docPath)
   }
-
-  if (logLevel==1)
-  {
+  # TODO catch the problem if there is still no valid document to work with
+  
+  theNamespace <- getNamespaceDefinitions(theXMLdoc)
+  
+  #------------------------- TEMP - print out details --------------------------- #
+ 
+  print(paste("Getting typedef for element name: ",theEName, sep=""))
+  
     print("----------------------------------------------------------------")
     output <- paste("Element:  ",theEName,sep="")
     print(output)
-  }
-  #------------------------------------------------------------------------------ #
+ #--------------end TEMP --------------------------------------------------- #
 
 	eTD <- getDirectTypeDefForElementName(theEName, theXMLdoc, theNamespace)
   # Get the element's type definition, which contains the information on child elements and attributes
@@ -34,10 +37,10 @@ theNamespace
   # If the type definiton of the element is present in the schema, then get the details for its child elements and its attributes, otherwise assign "NULL"
 	{
 	 
-		eList <- getSubElementDetailsForElementTypeDef(eTD, theXMLdoc, theNamespace)
+		eList <- getSubElementDetailsForElementTypeDef(eTD, theXMLdoc, theNamespace, logLevel)
     # This gives the details for the child elements of the given element
 
-		aList <- getAttributeDetailsForElementTypeDef(eTD, theXMLdoc, theNamespace)
+		aList <- getAttributeDetailsForElementTypeDef(eTD, theXMLdoc, theNamespace, logLevel)
     # This gives the details for the attributes of the given element
 	}
   
@@ -63,13 +66,18 @@ getSubElementDetailsForElementTypeDef <- function
 ### Type definition of the element, the details of whose child elements are required
 fullDocument,
 ### The XML Schema document in which the element and its type definition are present
-namespaces
+namespaces,
 ### The namespaces present in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
-	
-  logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
 
+  if (!exists("namespaces"))
+  {
+      namespaces<- getNamespaceDefinitions(fullDocument)
+  }
+	
   elToReturn=list()
 	elCounter=0
 
@@ -95,7 +103,7 @@ namespaces
       elCounter = elCounter + 1
       # A counter for the number of child elements
       
-      elDetails <- getElementDetails(elementList[[i]], fullDocument, namespaces)
+      elDetails <- getElementDetails(elementList[[i]], fullDocument, namespaces, logLevel)
       # Get the type and restrictions on value of the child element
       
 			elToReturn[[elCounter]] <- elDetails
@@ -133,11 +141,16 @@ getAttributeDetailsForElementTypeDef <- function
 ### Type definition of the element, the details of whose attributes are required
 fullDocument,
 ### The XML Schema document in which the element and its type definition are present
-namespaces
+namespaces,
 ### The namespaces present in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )  
 {
-  logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
+  if (!exists("namespaces"))
+  {
+      namespaces<- getNamespaceDefinitions(fullDocument)
+  }
 
   attToReturn=list()
   attCounter=0
@@ -158,6 +171,7 @@ namespaces
 	if (length(attributeList) >0) 
 	# If there are attributes for the given element's type definition
 	{
+    
 		for (i in 1:length(attributeList))
 		# Loop over all the attributes in the list and get the details for each
     {
@@ -173,13 +187,26 @@ namespaces
 			attType <- xmlGetAttr(attributeList[[1]],'type')	
 			# Get the 'type' of the attribute - this will tell how its string value should be used
 			
+			attMinEx <- xmlGetAttr(attributeList[[1]],'minExclusive')
+			attMaxEx <- xmlGetAttr(attributeList[[1]],'maxExclusive')
+			attMinIn <- xmlGetAttr(attributeList[[1]],'minInclusive')
+			attMaxIn <- xmlGetAttr(attributeList[[1]],'maxInclusive')
+      
       if (!is.null(attType))
+        
       # If the 'type' is not NULL, then get the details of 'base type' of that type
 			{
-				attType <- getBaseTypeDetails (attType, fullDocument, namespaces)
+				attType <- getBaseTypeDetails (attType, fullDocument, namespaces, logLevel)
+        
+        aT <- attType
+        attType <- aT$type
+        attMinEx <- aT$minEx
+        attMaxEx <- aT$maxEx
+        attMinIn <- aT$minIn
+        attMaxIn <- aT$maxIn
 			}
 
-			thisAttList <- list("name"=attName, "type"=attType, "required"=attReq)
+			thisAttList <- list("name"=attName, "type"=attType, "required"=attReq, "minEx"=attMinEx, "maxEx"=attMaxEx, "minIn"=attMinIn, "maxIn"=attMaxIn)
       # Make a list of all the details of the attribute
 
 			attToReturn[[attCounter]] <- thisAttList
@@ -189,6 +216,11 @@ namespaces
       if (logLevel==1)
       {
         print(paste("Attribute name: ",attName, " - type: ", attType, " - Required: ",attReq,sep=""))
+        
+        if (!is.null(attMinEx)) print(paste("Min. exclusive value: ",attMinEx,sep=""))
+        if (!is.null(attMaxEx)) print(paste("Max. exclusive value: ",attMaxEx,sep=""))
+        if (!is.null(attMinIn)) print(paste("Min. inclusive value: ",attMinIn,sep=""))
+        if (!is.null(attMaxIn)) print(paste("Max. inclusive value: ",attMaxIn,sep=""))
       }
       #------------------------------------------------------------------------------ #
       
@@ -209,12 +241,17 @@ getElementByName<- function
 ### The element may occur anywhere and as a simpleType element or as a complexType element or as a child element of some other element.
 theDoc,
 ### The XML Schema document in which to search for the element
-namespaces
+namespaces,
 ### The namespaces in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
-  
-     logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
+
+    if (!exists("namespaces"))
+   {
+      namespaces<- getNamespaceDefinitions(theDoc)
+   }
 
 	xpath.expression<-paste("//xs:element[(@name= '",en ,"')]",sep="")
   # An XPath Expression to find an element which has an attribute 'name' holding the name of the element which is to be searched for in the document
@@ -258,13 +295,12 @@ getElementRestrictionBase <- function
 ### Gives the base type for the restriction on the value of the given element
 (element,
 ### The element, the base type of whose value, needs to be found
-namespaces
+namespaces,
 ### The namespaces present in the XML Schema document containing the element
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
-  
-     logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
 	xpath.expression <- ".//xs:restriction"
   # An Xpath Expression to locate the restriction on the value of the element
   
@@ -288,13 +324,13 @@ getElementListBase <- function
 ### Gives the data type of the items in the element's list 
 (element,
 ### The element which contains a list
-namespaces
+namespaces,
 ### The namespaces present in the document containing the element
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
+
 )
 {
-  
-     logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
 	xpath.expression <- ".//xs:list"
   # An XPath Expression to locate the list in the element
   
@@ -317,13 +353,12 @@ getElementExtensionBase <- function
 ### Gives the base type of the extension in an element
 (element,
 ### The element for which the base type of the extension is to be found
-namespaces
+namespaces,
 ### The namespaces present in the document containing the element
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
-
-   logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
   xpath.expression <- ".//xs:extension"
   # An XPath Expression to locate the extension in the element
   
@@ -348,12 +383,14 @@ getBaseTypeDetails <- function
 ### The data type, the details of whose base type are to be found
 theDoc,
 ### All or part of the XML schema document containing the type definition of the given data type
-namespaces
+namespaces,
 ### The namespaces present in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
 
-   logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
+   # annoying appeasement of CMD notes generator to make it realise that this is global
    rBase <- NULL
 
   #------------------------- TEMP - print out details --------------------------- #
@@ -378,7 +415,7 @@ namespaces
 	# Check whether the given data type is a basic xs type. If it is not a basic xs type, then get the recursively get the base type
 	{	
     
-		elTypeDefinition<- getTypeDefinitionFromTypeDefName(inType, theDoc, namespaces)
+		elTypeDefinition<- getTypeDefinitionFromTypeDefName(inType, theDoc, namespaces, logLevel)
     # Get the type definition of the given data type
 
 		#------------------------- TEMP - print out details --------------------------- #
@@ -395,7 +432,7 @@ namespaces
     }
     #------------------------------------------------------------------------------ #
 		
-		rt <- getBaseType(theDoc, elTypeDefinition, namespaces) 
+		rt <- getBaseType(theDoc, elTypeDefinition, namespaces, logLevel) 
 		# This will give an idea of what kind of data type this is - integer, float, string. But it may take some recursive digging.
 		# First, look to see if this extends another type. Keep looking down the tree until there are no more extensions
 		
@@ -435,10 +472,10 @@ namespaces
       # Check if the data type of the items in the list extends another type. Keep looking down the tree until there are no more extensions
       {
         
-				elTypeDefinition<- getTypeDefinitionFromTypeDefName(itemType, theDoc=theDoc, namespaces)
+				elTypeDefinition<- getTypeDefinitionFromTypeDefName(itemType, theDoc=theDoc, namespaces, logLevel)
         # Get the type definition of the data type of items in the list
         
-				rt <- getBaseType(theDoc=theDoc, elTypeDefinition, namespaces) 
+				rt <- getBaseType(theDoc=theDoc, elTypeDefinition, namespaces, logLevel) 
         # Get the base type of this data type
         
 			}
@@ -450,7 +487,7 @@ namespaces
       
 		}
 		
-    rBase <- getElementRestrictionBase(rt, namespaces)
+    rBase <- getElementRestrictionBase(rt, namespaces, logLevel)
     # Get the data type of the entities being restricted in the data type
     
 		if (!is.null(rBase))
@@ -470,10 +507,10 @@ namespaces
       # In case the type of the restrictions is not a basic xs type, then dig down to see what it extends
 			{
         
-				elTypeDefinition<- getTypeDefinitionFromTypeDefName(rBase, theDoc=theDoc, namespaces)
+				elTypeDefinition<- getTypeDefinitionFromTypeDefName(rBase, theDoc=theDoc, namespaces, logLevel)
         # Get the type definition of the type of the restrictions
         
-				rt <- getBaseType(theDoc=theDoc, elTypeDefinition, namespaces) 
+				rt <- getBaseType(theDoc=theDoc, elTypeDefinition, namespaces, logLevel) 
         # Get the base type for this data type
         
 			}
@@ -572,20 +609,20 @@ getDirectTypeDefForElementName <- function
 ### The name of the element, whose type definition is required
 theDoc,
 ### The XML Schema document containing the element and the definition of its datatype
-namespaces
+namespaces,
 ### The namespaces present in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
   
-    logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
-	el4 <- getElementByName(en, theDoc, namespaces)
+	el4 <- getElementByName(en, theDoc, namespaces, logLevel)
   # Get the element given its name
   
 	if (length(el4)>0)
   # If the element is present in the document, then get the definition of its datatype
 	{
-	  getDirectTypeDefForElement(el4, theDoc, namespaces)
+	  getDirectTypeDefForElement(el4, theDoc, namespaces, logLevel)
 	}
 	else
   # If the element is not present in the document, then print and return NULL
@@ -605,17 +642,16 @@ getDirectTypeDefForElement <- function
 ### The element in the XML Schema document, whose type definition is required
 theDoc,
 ### The XML Schema document containing the element
-namespaces
+namespaces,
 ### The namespaces present in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
-  
-     logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
-	eTN <- getDirectTypeNameForElement(en, theDoc, namespaces)
+	eTN <- getDirectTypeNameForElement(en, theDoc, namespaces, logLevel)
   # Get the data type of the given element
   
-	getTypeDefinitionFromTypeDefName(eTN, theDoc, namespaces)
+	getTypeDefinitionFromTypeDefName(eTN, theDoc, namespaces, logLevel)
   # Get the definition of the data type of the element
 
 ### Returns the definition of the data type of the given element in the given XML Schema document
@@ -628,13 +664,12 @@ getDirectTypeNameForElement<-function
 ### The element, the name of whose data type is required
 theDoc,
 ### The XML Schema document containing the element
-namespaces
+namespaces,
 ### The namespaces present in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
-
-  logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
   #------------------------- TEMP - print out details --------------------------- #
   if (logLevel ==2)
   {
@@ -650,21 +685,21 @@ namespaces
 	# If 'type' is null, then get the type from the restrictions, list and extensions, whichever is present
 	{
     
-		eT <-getElementRestrictionBase(en,namespaces)
+		eT <-getElementRestrictionBase(en,namespaces, logLevel)
     # Get the data type of the restriction on the element
     
 		if (is.null(eT))
     # If the restriction is not present on the element
 		{
 			
-      eT <-getElementExtensionBase(en,namespaces)
+      eT <-getElementExtensionBase(en,namespaces, logLevel)
       # Get the data type of the extension
       
 			if (is.null(eT))
       # If the extension is not present in the element
 			{
 			
-        eT<- getElementListBase(en,namespaces)
+        eT<- getElementListBase(en,namespaces, logLevel)
         # Get the data type of the list in the element
         
 				if (is.null(eT))
@@ -735,14 +770,13 @@ getElementDetails <- function
 ### The element whose details are needed
 theDoc,
 ### All or part of the XML Schema document containing the element and its definition
-namespaces
+namespaces,
 ### The namespaces present in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
-  
-     logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
-	elType1<-getDirectTypeNameForElement(theEl, theDoc, namespaces)
+	elType1<-getDirectTypeNameForElement(theEl, theDoc, namespaces, logLevel)
   # Get the name of the data type of the element
 
 	#------------------------- TEMP - print out details --------------------------- #
@@ -761,7 +795,7 @@ namespaces
 	elMultiple=FALSE
 	# This is a flag to indicate whether to expect a space-delimited list of values
 
-	baseInfo <- getBaseTypeDetails(elType1, theDoc, namespaces)
+	baseInfo <- getBaseTypeDetails(elType1, theDoc, namespaces, logLevel)
   # Get the details of the data type of the element
 
 	elName<-xmlGetAttr(theEl, 'name')
@@ -784,13 +818,13 @@ getBaseType <- function
 ### All or part of the XML Schema document containing the given type definition
 typeDef,
 ### The given type definition
-namespaces
+namespaces,
 ### The namespaces present in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )  
 {
   
-  logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
   #------------------------- TEMP - print out details --------------------------- #
   if (logLevel==2)
   {
@@ -800,7 +834,7 @@ namespaces
 	
   tdToReturn <- typeDef
 
-	xBase <- getDirectTypeNameForElement(typeDef, theDoc, namespaces)
+	xBase <- getDirectTypeNameForElement(typeDef, theDoc, namespaces, logLevel)
   # Get the name of the data type
   
 	if (!is.null(xBase)) 
@@ -817,10 +851,10 @@ namespaces
       }
       #------------------------------------------------------------------------------ #
 			
-      tdToReturn <- getTypeDefinitionFromTypeDefName(xBase, theDoc, namespaces)
+      tdToReturn <- getTypeDefinitionFromTypeDefName(xBase, theDoc, namespaces, logLevel)
       # Get the type definition of the data type
 
-			getBaseType(theDoc,tdToReturn, namespaces) 
+			getBaseType(theDoc,tdToReturn, namespaces, logLevel) 
       # Get the name of the base type of this data type
 		
     }
@@ -848,13 +882,12 @@ getTypeDefinitionFromTypeDefName <- function
 ### The name of the data type
 theDoc,
 ### The XML Schema document containing the data type and its definition
-namespaces
+namespaces,
 ### The namespaces present in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
-
-     logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
 	splittype <- strsplit(typeDefName, ":")
   # Strip off the namespace from the name of the data type if present
 	
@@ -899,7 +932,7 @@ namespaces
     thisEL<- getNodeSet(doc=theDoc,path=xpath.expression, namespaces)
     # Get the list of all occurrences of the element
     
-    elTypeDefinition <- getDirectTypeDefForElement(thisEL[[1]], theDoc, namespaces)
+    elTypeDefinition <- getDirectTypeDefForElement(thisEL[[1]], theDoc, namespaces, logLevel)
     # Get the type definition from this element
     
     elTypeDefinition
@@ -925,17 +958,16 @@ elementExistsInSchema<- function
 ### The name of the element which to be searched in the document 
 theDoc,
 ### The XML Schema document in which to search for the element
-namespaces
+namespaces,
 ### The namespaces present in the document
+logLevel=1
+### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
-  
-  logLevel <-NULL # annoying appeasement of CMD notes generator to make it realise that this is global
-
-  en <- getElementByName(eName, theDoc, namespaces)
+  en <- getElementByName(eName, theDoc, namespaces, logLevel)
   # Get the element by its name
   
-  eB <- getElementExtensionBase(en, namespaces)
+  eB <- getElementExtensionBase(en, namespaces, logLevel)
   # Get the base type of the extension of the element
   
   if(length(eB)>0)
@@ -989,13 +1021,12 @@ namespaces
 
 
 getNamespaceDefinitions<-function
-### Gives the namspace definitions present in the given XML Schema document
+### Gives the namespace definitions present in the given XML Schema document
 (schemaDoc
 ### The name of the XML Schema document
 )
-{
-  s<-xmlTreeParse(schemaDoc, getDTD=FALSE)  
-  rootNode<-xmlRoot(s)
+{ 
+  rootNode<-xmlRoot(schemaDoc)
   xmlNamespaceDefinitions(rootNode, simplify=TRUE)
 ### Returns the namespace definitions in the given XML Schema document
   

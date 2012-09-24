@@ -1,7 +1,7 @@
 \name{getNamespaceDefinitions}
 \alias{getNamespaceDefinitions}
 \title{getNamespaceDefinitions}
-\description{Gives the namspace definitions present in the given XML Schema document}
+\description{Gives the namespace definitions present in the given XML Schema document}
 \usage{getNamespaceDefinitions(schemaDoc)}
 \arguments{
   \item{schemaDoc}{The name of the XML Schema document}
