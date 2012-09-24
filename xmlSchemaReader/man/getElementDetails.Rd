@@ -2,10 +2,10 @@
 \alias{getElementDetails}
 \title{getElementDetails}
 \description{Gives the details of the given element}
-\usage{getElementDetails(theEl, document, namespaces)}
+\usage{getElementDetails(theEl, theDoc, namespaces)}
 \arguments{
   \item{theEl}{The element whose details are needed}
-  \item{document}{All or part of the XML Schema document containing the element and its definition}
+  \item{theDoc}{All or part of the XML Schema document containing the element and its definition}
   \item{namespaces}{The namespaces present in the document}
 }
 
