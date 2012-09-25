@@ -2,7 +2,7 @@
 \alias{getElementListBase}
 \title{getElementListBase}
 \description{Gives the data type of the items in the element's list }
-\usage{getElementListBase(element, namespaces, logLevel = 2)}
+\usage{getElementListBase(element, namespaces, logLevel = 1)}
 \arguments{
   \item{element}{The element which contains a list}
   \item{namespaces}{The namespaces present in the document containing the element}

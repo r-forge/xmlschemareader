@@ -3,7 +3,7 @@
 \title{getAttributeDetailsForElementTypeDef}
 \description{Gives the type and the restrictions on value of each of the attributes for the element whose type definition is given}
 \usage{getAttributeDetailsForElementTypeDef(eTypeDef, fullDocument, 
-    namespaces, logLevel = 2)}
+    namespaces, logLevel = 1)}
 \arguments{
   \item{eTypeDef}{Type definition of the element, the details of whose attributes are required}
   \item{fullDocument}{The XML Schema document in which the element and its type definition are present}

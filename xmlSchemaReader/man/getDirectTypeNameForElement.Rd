@@ -2,7 +2,7 @@
 \alias{getDirectTypeNameForElement}
 \title{getDirectTypeNameForElement}
 \description{Gives the name of the data type of the given element}
-\usage{getDirectTypeNameForElement(en, theDoc, namespaces, logLevel = 2)}
+\usage{getDirectTypeNameForElement(en, theDoc, namespaces, logLevel = 1)}
 \arguments{
   \item{en}{The element, the name of whose data type is required}
   \item{theDoc}{The XML Schema document containing the element}

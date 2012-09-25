@@ -2,7 +2,7 @@
 \alias{getElementExtensionBase}
 \title{getElementExtensionBase}
 \description{Gives the base type of the extension in an element}
-\usage{getElementExtensionBase(element, namespaces, logLevel = 2)}
+\usage{getElementExtensionBase(element, namespaces, logLevel = 1)}
 \arguments{
   \item{element}{The element for which the base type of the extension is to be found}
   \item{namespaces}{The namespaces present in the document containing the element}

@@ -2,7 +2,7 @@
 \alias{getAttributesAndElementsForElementName}
 \title{getAttributesAndElementsForElementName}
 \description{Gives the type and restrictions on the values of the child elements and attributes for a given element in the document}
-\usage{getAttributesAndElementsForElementName(theEName, theXMLdoc, logLevel = 2)}
+\usage{getAttributesAndElementsForElementName(theEName, theXMLdoc, logLevel = 1)}
 \arguments{
   \item{theEName}{(string) The name of the element whose details are needed}
   \item{theXMLdoc}{(XMLInternalDocument OR string) Either: the XML schema document in which the element is present. This should have been read using xmlParseDoc or be supplied in the R workspace.

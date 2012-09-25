@@ -2,7 +2,7 @@
 \alias{getElementByName}
 \title{getElementByName}
 \description{Searches for a given element in the given document}
-\usage{getElementByName(en, theDoc, namespaces, logLevel = 2)}
+\usage{getElementByName(en, theDoc, namespaces, logLevel = 1)}
 \arguments{
   \item{en}{The name of the element which is to be searched for.
 The element may occur anywhere and as a simpleType element or as a complexType element or as a child element of some other element.}

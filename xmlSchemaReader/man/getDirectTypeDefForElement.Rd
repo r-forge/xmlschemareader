@@ -2,7 +2,7 @@
 \alias{getDirectTypeDefForElement}
 \title{getDirectTypeDefForElement}
 \description{Gives the definition of the data type of the element, given the element}
-\usage{getDirectTypeDefForElement(en, theDoc, namespaces, logLevel = 2)}
+\usage{getDirectTypeDefForElement(en, theDoc, namespaces, logLevel = 1)}
 \arguments{
   \item{en}{The element in the XML Schema document, whose type definition is required}
   \item{theDoc}{The XML Schema document containing the element}

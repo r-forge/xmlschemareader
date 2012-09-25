@@ -2,7 +2,7 @@
 \alias{elementExistsInSchema}
 \title{elementExistsInSchema}
 \description{Checks whether the given element is present as a complexType element in the given XML Schema document}
-\usage{elementExistsInSchema(eName, theDoc, namespaces, logLevel = 2)}
+\usage{elementExistsInSchema(eName, theDoc, namespaces, logLevel = 1)}
 \arguments{
   \item{eName}{The name of the element which to be searched in the document }
   \item{theDoc}{The XML Schema document in which to search for the element}

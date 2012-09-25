@@ -3,7 +3,7 @@
 \title{getTypeDefinitionFromTypeDefName}
 \description{Gives the definition for the given data type}
 \usage{getTypeDefinitionFromTypeDefName(typeDefName, theDoc, namespaces, 
-    logLevel = 2)}
+    logLevel = 1)}
 \arguments{
   \item{typeDefName}{The name of the data type}
   \item{theDoc}{The XML Schema document containing the data type and its definition}
