@@ -10,7 +10,8 @@
   \item{logLevel}{The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0}
 }
 
-
+\value{Returns a list containing all the appropriate details of the base type of the given type. 
+The parameters which are not valid in some cases are assigned NULL values there.}
 
 \author{Lucy Bastin and Ankita Goyal}
 

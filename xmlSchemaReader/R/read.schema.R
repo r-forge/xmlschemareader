@@ -374,21 +374,23 @@ logLevel=1
 {
 
    # annoying appeasement of CMD notes generator to make it realise that this is global
-   rBase <- NULL
+  rBase <- NULL
 
   elMultiple <-FALSE
-  minEx <- NULL
-  minIn <- NULL
-  maxEx <- NULL
-  maxIn <- NULL
-  eBT = NULL
+  minMaxDetails <- NULL
+  minEx = NULL
+  maxEx = NULL
+  minIn = NULL
+  maxIn = NULL
+ 
+  elBaseType = NULL
+  elTypeDefinition <- NULL # This gets used if the type is not straightfoward and has to be dug for
+  
    # Initialize all other details to NULL. These will be populated if there's a numeric restriction.
 
   # Check whether a string type name was passed in, or an actual node
   if (is.character(inType))  
   {
-    elBaseType <- inType
-    # Initialize the base type to be the same as the data type
   
   	if (substr(inType, start=1, stop=3)  != 'xs:')
   	# Check whether the given data type is a basic xs type. If it is not a basic xs type, then recursively get the base type
@@ -399,7 +401,8 @@ logLevel=1
     } 
     else
     {  
-         eBT <- classifyType(elBaseType)
+          elBaseType <- classifyType(inType)
+          # elTypeDefinition remains null, we will stop searching for a more complex type definition
     }
   }
   else 
@@ -421,12 +424,14 @@ logLevel=1
   		# This will give an idea of what kind of data type this is - integer, float, string. But it may take some recursive digging.
   		# First, look to see if this extends another type. Keep looking down the tree until there are no more extensions
   
+  		elBaseType <- classifyType(rt[[1]])
+      
   		# Check if the type that the given data type extends, is a restriction or a list
   			
   		xpath.expression <- ".//xs:list"
       # An XPath Expression to check if this is a list
       
-  		listList <- getNodeSet(doc=rt,path=xpath.expression, namespaces)
+  		listList <- getNodeSet(doc=rt[[2]],path=xpath.expression, namespaces)
       # Gives a list of all the lists present in the type
       
   		if (length(listList) > 0) 
@@ -435,128 +440,22 @@ logLevel=1
         
   			elMultiple=TRUE
         # This indicates that we have a space-delimited list of values
-        
-  			itemType <- xmlGetAttr(listList[[1]],'itemType')
-        # Get the data type of the items in the list
-  			
-        if (substr(itemType, start=1, stop=3)  != 'xs:')
-        # Check if the data type of the items in the list extends another type. Keep looking down the tree until there are no more extensions
-        {
-          
-  				elTypeDefinition<- getTypeDefinitionFromTypeDefName(itemType, theDoc=theDoc, namespaces, logLevel)
-          # Get the type definition of the data type of items in the list
-          
-  				rt <- getBaseType(theDoc=theDoc, elTypeDefinition, namespaces, logLevel) 
-          # Get the base type of this data type
-          
-  			}
-  			else
-        # If the data type of the items in the list is a basic xs type, then it is the base type of the given data type
-        {
-          elBaseType <- itemType
-        }
-        
+            
   		}
   		
-      rBase <- getElementRestrictionBase(rt, namespaces, logLevel)
-      # Get the data type of the entities being restricted in the data type
-      
-  		if (!is.null(rBase))
-      # If the entities are restricted, then the base type of the given data type is the type of the restrictions
-  		{
-        
-  			#------------------------- TEMP - print out details --------------------------- #
-        if (logLevel==2)
-        {
-          print (paste("Restricts ",rBase,sep=""))
-        }
-        #------------------------------------------------------------------------------ #
-        
-  			if (substr(rBase, start=1, stop=3)  != 'xs:')
-        # In case the type of the restrictions is not a basic xs type, then dig down to see what it extends
-  			{
-          
-  				elTypeDefinition<- getTypeDefinitionFromTypeDefName(rBase, theDoc=theDoc, namespaces, logLevel)
-          # Get the type definition of the type of the restrictions
-          
-  				rt <- getBaseType(theDoc=theDoc, elTypeDefinition, namespaces, logLevel) 
-          # Get the base type for this data type
-          
-          #TODO - this needs proper testing
-  				xpath.expression <- ".//xs:restriction"
-  				# An Xpath Expression to locate the restriction base
-  				
-  				resList <- getNodeSet(doc=rt,path=xpath.expression, namespaces)
-  				# Get a list of the minimum exclusive restrictions on the element
-  				
-  				if (length(resList) > 0) 
-  				  # If a restriction base is present, get it
-  				{
-  				  rBase <- xmlGetAttr(resList[[1]],'base')
-  				}
-  			}
-        
-  			eBT <- classifyType(rBase)
-  			# Assign the type according to the data types in R language
-  			
-  			xpath.expression <- ".//xs:minExclusive"
-        # An Xpath Expression to locate the minimum Exclusive restriction
-        
-  			minMaxList <- getNodeSet(doc=rt,path=xpath.expression, namespaces)
-        # Get a list of the minimum exclusive restrictions on the element
-        
-  			if (length(minMaxList) > 0) 
-        # If a minimum exclusive restriction is present, get the integer value of the restriction
-  			{
-  				minEx <- as.numeric(xmlGetAttr(minMaxList[[1]],'value'))
-  			}
-        
-  			xpath.expression <- ".//xs:minInclusive"
-  			# An Xpath Expression to locate the minimum Inclusive retriction
-  			
-  			minMaxList <- getNodeSet(doc=rt,path=xpath.expression, namespaces)
-  			# Get a list of the minimum inclusive restrictions on the element
-  			
-  			if (length(minMaxList) > 0) 
-  			# If a minimum inclusive restriction is present, get the integer value of the restriction
-  			{
-  				minIn <- as.numeric(xmlGetAttr(minMaxList[[1]],'value'))
-  			}
-  
-  			xpath.expression <- ".//xs:maxExclusive"
-  			# An Xpath Expression to locate the maximum Exclusive retriction
-  			
-  			minMaxList <- getNodeSet(doc=rt,path=xpath.expression, namespaces)
-  			# Get a list of the maximum exclusive restrictions on the element
-  			
-  			if (length(minMaxList) > 0) 
-  			# If a maximum exclusive restriction is present, get the integer value of the restriction
-  			{
-  				maxEx <- as.numeric(xmlGetAttr(minMaxList[[1]],'value'))
-  			}
-  
-  			xpath.expression <- ".//xs:maxInclusive"
-  			# An Xpath Expression to locate the maximum Inclusive retriction
-  			
-  			minMaxList <- getNodeSet(doc=rt,path=xpath.expression, namespaces)
-  			# Get a list of the maximum inclusive restrictions on the element
-  			
-  			if (length(minMaxList) > 0) 
-  			# If a maximum inclusive restriction is present, get the integer value of the restriction
-  			{
-  				maxIn <- as.numeric(xmlGetAttr(minMaxList[[1]],'value'))
-  			}
-  			
-  		}
+      if (!is.null(rt))
+      {
+    			minMaxDetails <- getMinMaxValues(rt[[2]], namespaces)	
+          minEx = minMaxDetails$minEx
+    			maxEx = minMaxDetails$maxEx
+    			minIn = minMaxDetails$minIn
+    			maxIn = minMaxDetails$maxIn
+      }
     
-  	list('type'=eBT, 'multiple'=elMultiple, 'minEx'=minEx, 'maxEx'=maxEx , 'minIn'=minIn, 'maxIn'=maxIn)
+  }
+  list('type'=elBaseType, 'multiple'=elMultiple, 'minEx'=minEx, 'maxEx'=maxEx , 'minIn'=minIn, 'maxIn'=maxIn)
   ### Returns a list containing all the appropriate details of the base type of the given type. 
   ### The parameters which are not valid in some cases are assigned NULL values there.
-  }
-  else
-  {
-    print("No Type definition found...")
-  }
   
 }
 
@@ -731,13 +630,6 @@ logLevel=1
 	elType1<-getDirectTypeNameForElement(theEl, theDoc, namespaces, logLevel)
   # Get the name of the data type of the element
 
-	#------------------------- TEMP - print out details --------------------------- #
-  if (logLevel==2)
-  {
-    print (paste("getElementDetails: elementType for element ",  xmlGetAttr(theEl,'name'), " is ", elType1))
-  }
-  #------------------------------------------------------------------------------ #
-  
 	elMinOccurs <- xmlGetAttr(theEl,'minOccurs')
 	# Get the 'minOccurs' of the element - this will tell you whether it's required
 	
@@ -776,7 +668,6 @@ logLevel=1
 ### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )  
 {
-	
   tdToReturn <- typeDef
 
 	xBase <- getDirectTypeNameForElement(typeDef, theDoc, namespaces, logLevel)
@@ -798,23 +689,40 @@ logLevel=1
 			
       tdToReturn <- getTypeDefinitionFromTypeDefName(xBase, theDoc, namespaces, logLevel)
       # Get the type definition of the data type
-
-			getBaseType(theDoc,tdToReturn, namespaces, logLevel) 
-      # Get the name of the base type of this data type
-		
+      
+      xBase <- getDirectTypeNameForElement(tdToReturn, theDoc, namespaces, logLevel)
+      # Get the name of the data type
+      
+      if (!is.null(xBase))
+      {
+        if (substr(xBase, start=1, stop=3)  == 'xs:')
+        # If the data type is a basic xs type
+        {
+          list('type'=xBase, 'typedef'=tdToReturn)
+  		  } 
+        else
+        {
+    			theBaseType <- getBaseType(theDoc,tdToReturn, namespaces, logLevel) 
+          # Get the name of the base type of this data type
+          
+    			theBaseType
+        }
+      }
     }
 		else 
     # If the data type is a basic xs type, return the data type
     { 
-      tdToReturn 
+      list('type'=xBase, 'typedef'=tdToReturn)
     }
     
 	}
 	else 
   # If the element does not have a type attribute, then the definition is simply the data type
-  { 
-    tdToReturn 
-  }
+	{ 
+	  list('type'=tdToReturn, 'typedef'=tdToReturn)
+    # TODO check this situation
+    print("No type attribute: returning typedef twice")
+	}
 ### Returns the name of the base type of the element
   
 }
@@ -965,29 +873,97 @@ logLevel=1
 
 classifyType<-function
 ### Classifies attributes according to R data types
-(elBaseType
+(theBaseType
  ### The xs: namespace-specific definition name of the value
 )
 {
   eBT <- NULL
   
-  if ((elBaseType=='xs:decimal') || (elBaseType=='xs:double') || (elBaseType=='xs:float'))
+  if ((theBaseType=='xs:decimal') || (theBaseType=='xs:double') || (theBaseType=='xs:float'))
   {
-    eBT="numeric"
+    eBT="real"
   }
-  else if ((elBaseType=='xs:integer') || (elBaseType=='xs:int'))
+  else if ((theBaseType=='xs:integer') || (theBaseType=='xs:int'))
   {
     eBT="integer"
   }
-  else if (elBaseType=='xs:boolean') 
+  else if (theBaseType=='xs:boolean') 
   {
     eBT="boolean"
+  }
+  else if (theBaseType=='xs:ID') 
+  {
+    eBT="ID"
   }
   else 
   {
     eBT="string" 
   }
   eBT
+}
+
+
+getMinMaxValues<-function
+### Collects details of min/max value restrictions on a supplied element
+(inDef,
+ ### The element to be queried
+ namespaces
+ ### The relevant namespaces for the document
+)
+{
+  minEx = NULL
+  maxEx = NULL
+  minIn = NULL
+  maxIn = NULL
+  
+  xpath.expression <- ".//xs:minExclusive"
+  # An Xpath Expression to locate the minimum Exclusive restriction
+  
+  minMaxList <- getNodeSet(doc=inDef,path=xpath.expression, namespaces)
+  # Get a list of the minimum exclusive restrictions on the element
+  
+  if (length(minMaxList) > 0) 
+    # If a minimum exclusive restriction is present, get the integer value of the restriction
+  {
+    minEx <- as.numeric(xmlGetAttr(minMaxList[[1]],'value'))
+  }
+  
+  xpath.expression <- ".//xs:minInclusive"
+  # An Xpath Expression to locate the minimum Inclusive retriction
+  
+  minMaxList <- getNodeSet(doc=inDef,path=xpath.expression, namespaces)
+  # Get a list of the minimum inclusive restrictions on the element
+  
+  if (length(minMaxList) > 0) 
+    # If a minimum inclusive restriction is present, get the integer value of the restriction
+  {
+    minIn <- as.numeric(xmlGetAttr(minMaxList[[1]],'value'))
+  }
+  
+  xpath.expression <- ".//xs:maxExclusive"
+  # An Xpath Expression to locate the maximum Exclusive retriction
+  
+  minMaxList <- getNodeSet(doc=inDef,path=xpath.expression, namespaces)
+  # Get a list of the maximum exclusive restrictions on the element
+  
+  if (length(minMaxList) > 0) 
+    # If a maximum exclusive restriction is present, get the integer value of the restriction
+  {
+    maxEx <- as.numeric(xmlGetAttr(minMaxList[[1]],'value'))
+  }
+  
+  xpath.expression <- ".//xs:maxInclusive"
+  # An Xpath Expression to locate the maximum Inclusive retriction
+  
+  minMaxList <- getNodeSet(doc=inDef,path=xpath.expression, namespaces)
+  # Get a list of the maximum inclusive restrictions on the element
+  
+  if (length(minMaxList) > 0) 
+    # If a maximum inclusive restriction is present, get the integer value of the restriction
+  {
+    maxIn <- as.numeric(xmlGetAttr(minMaxList[[1]],'value'))
+  }
+  list('minEx'=minEx, 'maxEx'=maxEx, 'minIn'=minIn, 'maxIn'=maxIn)
 }
 
 getNamespaceDefinitions<-function

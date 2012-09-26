@@ -2,9 +2,9 @@
 \alias{classifyType}
 \title{classifyType}
 \description{Classifies attributes according to R data types}
-\usage{classifyType(elBaseType)}
+\usage{classifyType(theBaseType)}
 \arguments{
-  \item{elBaseType}{The xs: namespace-specific definition name of the value}
+  \item{theBaseType}{The xs: namespace-specific definition name of the value}
 }
 
 
