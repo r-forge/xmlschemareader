@@ -388,70 +388,89 @@ logLevel=1
   
    # Initialize all other details to NULL. These will be populated if there's a numeric restriction.
 
-  # Check whether a string type name was passed in, or an actual node
-  if (is.character(inType))  
+  if (!is.null(inType))
   {
-  
-  	if (substr(inType, start=1, stop=3)  != 'xs:')
-  	# Check whether the given data type is a basic xs type. If it is not a basic xs type, then recursively get the base type
-  	{	
+    # Check whether a string type name was passed in, or an actual node
+    if (is.character(inType))  
+    {
+      if (logLevel==2)
+      {
+        print(paste("element type is a character string:  ",inType,sep=""))
+      }
       
-      		elTypeDefinition<- getTypeDefinitionFromTypeDefName(inType, theDoc, namespaces, logLevel)
-          # Get the type definition of the given data type
-    } 
-    else
-    {  
-          elBaseType <- classifyType(inType)
-          # elTypeDefinition remains null, we will stop searching for a more complex type definition
+      if (substr(inType, start=1, stop=3)  != 'xs:')
+        # Check whether the given data type is a basic xs type. 
+        
+        # If it is not one of these, then recursively get the base type
+      {	
+        
+        elTypeDefinition<- getTypeDefinitionFromTypeDefName(inType, theDoc, namespaces, logLevel)
+        # Get the type definition of the given data type
+      } 
+      else
+      {  
+        elBaseType <- classifyType(inType)
+        # elTypeDefinition remains null, we will stop searching for a more complex type definition
+      }
+      
     }
-  }
-  else 
-  {
-      # Look for a type definition inline instead
-
-      xpath.expression <- ".//xs:simpleType"
-      # An XPath Expression to help locate the attribute definition inline, if it's there
+    else 
+    {
+        # Look for a type definition inline instead
       
-      elTD <- getNodeSet(doc=inType,path=xpath.expression, namespaces)
+        xpath.expression <- ".//xs:simpleType"
+        # An XPath Expression to help locate the attribute definition inline, if it's there
+        
+        elTD <- getNodeSet(doc=inType,path=xpath.expression, namespaces)
+        
+        elTypeDefinition <- elTD[[1]]
+        # This gives the definition of the attribute type if it is inline
       
-      elTypeDefinition <- elTD[[1]]
-      # This gives the definition of the attribute type if it is inline
-    
+    }
   }
   if (!is.null(elTypeDefinition))
   {
-  		rt <- getBaseType(theDoc, elTypeDefinition, namespaces, logLevel) 
-  		# This will give an idea of what kind of data type this is - integer, float, string. But it may take some recursive digging.
-  		# First, look to see if this extends another type. Keep looking down the tree until there are no more extensions
-  
-  		elBaseType <- classifyType(rt[[1]])
-      
-  		# Check if the type that the given data type extends, is a restriction or a list
-  			
-  		xpath.expression <- ".//xs:list"
-      # An XPath Expression to check if this is a list
-      
-  		listList <- getNodeSet(doc=rt[[2]],path=xpath.expression, namespaces)
-      # Gives a list of all the lists present in the type
-      
-  		if (length(listList) > 0) 
-      # If the data type has a list, get the base type of the items in the list
-  		{
-        
-  			elMultiple=TRUE
-        # This indicates that we have a space-delimited list of values
-            
-  		}
-  		
-      if (!is.null(rt))
+      # First, check if this is a complex type from the schema
+      if (isUncertaintyType(theDoc, elTypeDefinition, namespaces, logLevel))
       {
-    			minMaxDetails <- getMinMaxValues(rt[[2]], namespaces)	
-          minEx = minMaxDetails$minEx
-    			maxEx = minMaxDetails$maxEx
-    			minIn = minMaxDetails$minIn
-    			maxIn = minMaxDetails$maxIn
+        elBaseType <- inType
       }
+      else 
+      {
+    		rt <- getBaseType(theDoc, elTypeDefinition, namespaces, logLevel) 
+    		# This will give an idea of what kind of data type this is - integer, float, string. But it may take some recursive digging.
+    		# First, look to see if this extends another type. Keep looking down the tree until there are no more extensions
     
+    		elBaseType <- classifyType(rt[[1]])
+        
+    		# Check if the type that the given data type extends, is a restriction or a list
+    			
+    		xpath.expression <- ".//xs:list"
+        # An XPath Expression to check if this is a list
+        
+    		listList <- getNodeSet(doc=rt[[2]],path=xpath.expression, namespaces)
+        # Gives a list of all the lists present in the type
+        
+    		if (length(listList) > 0) 
+        # If the data type has a list, get the base type of the items in the list
+    		{
+          
+    			elMultiple=TRUE
+          # This indicates that we have a space-delimited list of values
+              
+    		}
+    		
+        if (!is.null(rt))
+        {
+      			minMaxDetails <- getMinMaxValues(rt[[2]], namespaces)	
+            minEx = minMaxDetails$minEx
+      			maxEx = minMaxDetails$maxEx
+      			minIn = minMaxDetails$minIn
+      			maxIn = minMaxDetails$maxIn
+  #       
+        }
+      }
+  
   }
   list('type'=elBaseType, 'multiple'=elMultiple, 'minEx'=minEx, 'maxEx'=maxEx , 'minIn'=minIn, 'maxIn'=maxIn)
   ### Returns a list containing all the appropriate details of the base type of the given type. 
@@ -627,9 +646,24 @@ logLevel=1
 ### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )
 {
+  
+  #------------------------- TEMP - print out details --------------------------- #
+  if (logLevel==2)
+  {
+    print(paste("xmlname:  ",xmlName(theEl),sep=""))
+  }
+  #----
+  
 	elType1<-getDirectTypeNameForElement(theEl, theDoc, namespaces, logLevel)
   # Get the name of the data type of the element
 
+  #------------------------- TEMP - print out details --------------------------- #
+  if (logLevel==2)
+  {
+    print(paste("type:  ",elType1,sep=""))
+  }
+  #----
+  
 	elMinOccurs <- xmlGetAttr(theEl,'minOccurs')
 	# Get the 'minOccurs' of the element - this will tell you whether it's required
 	
@@ -638,16 +672,16 @@ logLevel=1
 	
 	elMultiple=FALSE
 	# This is a flag to indicate whether to expect a space-delimited list of values
-
-	baseInfo <- getBaseTypeDetails(elType1, theDoc, namespaces, logLevel)
-  # Get the details of the data type of the element
-
-	elName<-xmlGetAttr(theEl, 'name')
-  # Get the name of the element
+	
+  	baseInfo <- getBaseTypeDetails(elType1, theDoc, namespaces, logLevel)
+    # Get the details of the data type of the element
   
-	if (length(elName) == 0)
-		elName<-xmlGetAttr(theEl, 'ref')
-  # If the attribute 'name' is not present, then there is a reference. Get the name from the reference
+  	elName<-xmlGetAttr(theEl, 'name')
+    # Get the name of the element
+    
+  	if (length(elName) == 0)
+  		elName<-xmlGetAttr(theEl, 'ref')
+    # If the attribute 'name' is not present, then there is a reference. Get the name from the reference
 
 	list('name'=elName, 'type'=baseInfo$type, 'minOccurs'=elMinOccurs, 'maxOccurs'=elMaxOccurs, 'multiple'=baseInfo$multiple, 'minEx'=baseInfo$minEx, 'maxEx'=baseInfo$maxEx , 'minIn'=baseInfo$minIn, 'maxIn'=baseInfo$maxIn)
 ### Returns a list giving all the details of the given element
@@ -668,66 +702,160 @@ logLevel=1
 ### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
 )  
 {
+  
   tdToReturn <- typeDef
 
-	xBase <- getDirectTypeNameForElement(typeDef, theDoc, namespaces, logLevel)
-  # Get the name of the data type
-  
-	if (!is.null(xBase)) 
-	{
+  if (isUncertaintyType(theDoc,tdToReturn, namespaces, logLevel))
+  {
+    # return the original type
+    splittype <- strsplit(tdToReturn, ":")
+    # Strip off the namespace from the name of the data type if present
     
-		if (substr(xBase, start=1, stop=3)  != 'xs:')
-    # If the data type is not a basic xs type
-		{
-		  
-      #------------------------- TEMP - print out details --------------------------- #
-      if (logLevel==2)
-      {
-        print(paste("GetBaseType: Getting typedef for ",xBase,sep=""))
-      }
-      #------------------------------------------------------------------------------ #
-			
-      tdToReturn <- getTypeDefinitionFromTypeDefName(xBase, theDoc, namespaces, logLevel)
-      # Get the type definition of the data type
+    if (length(splittype[[1]]) > 1) 
+      # If the namespace is present, get the actual name of the data type
+    {
+      tdToReturn <- splittype[[1]][[2]]
+    }
+    list('type'=tdToReturn, 'typedef'=tdToReturn)
+  }
+  else
+  {
+  	xBase <- getDirectTypeNameForElement(typeDef, theDoc, namespaces, logLevel)
+    # Get the name of the data type
+    
+  	if (!is.null(xBase)) 
+  	{
       
-      xBase <- getDirectTypeNameForElement(tdToReturn, theDoc, namespaces, logLevel)
-      # Get the name of the data type
-      
-      if (!is.null(xBase))
-      {
-        if (substr(xBase, start=1, stop=3)  == 'xs:')
-        # If the data type is a basic xs type
-        {
-          list('type'=xBase, 'typedef'=tdToReturn)
-  		  } 
-        else
-        {
-    			theBaseType <- getBaseType(theDoc,tdToReturn, namespaces, logLevel) 
-          # Get the name of the base type of this data type
+  		if (substr(xBase, start=1, stop=3)  != 'xs:')
+      # If the data type is not a basic xs type
+  		{
+          tdToReturn <- getTypeDefinitionFromTypeDefName(xBase, theDoc, namespaces, logLevel)
+          # Get the type definition of the data type
           
-    			theBaseType
-        }
+          xBase <- getDirectTypeNameForElement(tdToReturn, theDoc, namespaces, logLevel)
+          # Get the name of the data type
+          
+          if (!is.null(xBase))
+          {
+            if (substr(xBase, start=1, stop=3)  == 'xs:')
+            # If the data type is a basic xs type
+            {
+              list('type'=xBase, 'typedef'=tdToReturn)
+      		  } 
+            else
+            {
+        			theBaseType <- getBaseType(theDoc,tdToReturn, namespaces, logLevel) 
+              # Get the name of the base type of this data type
+              
+        			theBaseType
+            }
+          }
+        
       }
-    }
-		else 
-    # If the data type is a basic xs type, return the data type
-    { 
-      list('type'=xBase, 'typedef'=tdToReturn)
-    }
-    
-	}
-	else 
-  # If the element does not have a type attribute, then the definition is simply the data type
-	{ 
-	  list('type'=tdToReturn, 'typedef'=tdToReturn)
-    # TODO check this situation
-    print("No type attribute: returning typedef twice")
-	}
+  		else 
+      # If the data type is a basic xs type, return the data type
+      { 
+        list('type'=xBase, 'typedef'=tdToReturn)
+      }
+      
+  	}
+  	else 
+    # If the element does not have a type attribute, then the definition is simply the data type
+  	{ 
+  	  list('type'=tdToReturn, 'typedef'=tdToReturn)
+      # TODO check this situation
+      #print("No type attribute: returning typedef twice")
+  	}
+  }
 ### Returns the name of the base type of the element
   
 }
 
-
+isUncertaintyType <- function
+### Gives the name of the base type for the given definition of the data type
+(theDoc,
+ ### All or part of the XML Schema document containing the given type definition
+ typeDef,
+ ### The given type definition
+ namespaces,
+ ### The namespaces present in the document
+ logLevel=1
+ ### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
+)  
+{
+  
+  ValueToReturn <- FALSE
+  tdToReturn <- typeDef
+  
+  xBase <- getDirectTypeNameForElement(typeDef, theDoc, namespaces, logLevel)
+  # Get the name of the data type
+  #------------------------- TEMP - print out details --------------------------- #
+  if (logLevel==2)
+  {
+    print(paste("GetBaseType: got: ",xBase,sep=""))
+  }
+  #----------------------------------------------
+  if(xBase =="un:AbstractUncertaintyType")
+  {
+    ValueToReturn <- TRUE
+  }
+  else
+  {
+  
+    if (!is.null(xBase)) 
+    {
+      
+      if (substr(xBase, start=1, stop=3)  != 'xs:')
+        # If the data type is not a basic xs type
+      {
+        
+        
+        #------------------------- TEMP - print out details --------------------------- #
+        if (logLevel==2)
+        {
+          print(paste("GetBaseType: Getting typedef for ",xBase,sep=""))
+        }
+        #------------------------------------------------------------------------------ #
+        
+        tdToReturn <- getTypeDefinitionFromTypeDefName(xBase, theDoc, namespaces, logLevel)
+        # Get the type definition of the data type
+        
+        xBase <- getDirectTypeNameForElement(tdToReturn, theDoc, namespaces, logLevel)
+        # Get the name of the data type
+        
+        if (!is.null(xBase))
+        {
+          if (substr(xBase, start=1, stop=3)  == 'xs:')
+            # If the data type is a basic xs type
+          {
+            list('type'=xBase, 'typedef'=tdToReturn)
+          } 
+          else
+          {
+            ValueToReturn <- isUncertaintyType(theDoc,tdToReturn, namespaces, logLevel) 
+            # Get the name of the base type of this data type
+          
+          }
+        }
+        
+      }
+      else 
+        # If the data type is a basic xs type, return the data type
+      { 
+        ValueToReturn <- FALSE
+      }
+      
+    }
+    else 
+      # If the element does not have a type attribute, then the definition is simply the data type
+    { 
+      ValueToReturn <- FALSE
+    }
+    ### Returns TRUE or FALSE depending on whether the type is an abstract uncertainty
+  }
+  ValueToReturn
+  
+}
 
 getTypeDefinitionFromTypeDefName <- function
 ### Gives the definition for the given data type
@@ -805,71 +933,6 @@ logLevel=1
 
 
 
-elementExistsInSchema<- function
-### Checks whether the given element is present as a complexType element in the given XML Schema document
-(eName,
-### The name of the element which to be searched in the document 
-theDoc,
-### The XML Schema document in which to search for the element
-namespaces,
-### The namespaces present in the document
-logLevel=1
-### The level of logging that will be carried out: 0 (none) 1 (limited) or 2 (full). Optional - defaults to 0
-)
-{
-  en <- getElementByName(eName, theDoc, namespaces, logLevel)
-  # Get the element by its name
-  
-  eB <- getElementExtensionBase(en, namespaces, logLevel)
-  # Get the base type of the extension of the element
-  
-  if(length(eB)>0)
-  # If the extension is present, the element may be present as a complexType element
-  {
-    
-    xpath.expression <- paste("//xs:complexType[(@name='", eB, "')]", sep="")
-    # An XPath Expression to locate the element as a complexType
-    
-    eCT <- getNodeSet(doc=theDoc, path=xpath.expression, namespaces)
-    # Get the list of all the occurences of the element as complexType
-    
-    if (length(eCT)==0)
-    # If the element is not present as a complexType, there may be a namespace prefix
-    {
-      
-      splitBase <- strsplit(eB, ":")
-      # strip off the namespace
-      
-      if (length(splitBase[[1]])>1)
-      # If the namespace is present, get the actual base type
-      {
-        
-        eB <- splitBase[[1]][[2]]
-        xpath.expression <- paste("//xs:complexType[(@name='", eB, "')]", sep="")
-        # An XPath Expression to locate the element as a complexType
-        
-        eCT <- getNodeSet(doc=theDoc, path=xpath.expression, namespaces)
-        # Get the list of all the occurences of the element as complexType
-        
-      }
-      
-    }
-    if (length(eCT)>0)
-    # If the element is present, return true, false otherwise
-    {
-      TRUE
-    }
-    else
-      FALSE  
-    
-  }
-  else
-  {
-    FALSE
-  }  
-### Returns true if the element is present as a complexType in the schema, otherwise false
-  
-}	
 
 classifyType<-function
 ### Classifies attributes according to R data types
