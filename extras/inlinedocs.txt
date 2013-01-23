@@ -1,0 +1,3 @@
+install.packages("inlinedocs",repos="http://r-forge.r-project.org")
+library(inlinedocs)
+package.skeleton.dx("C:/subversion/Rforge_XML_Schema_reader/pkg/xmlSchemaHelper")
