@@ -23,11 +23,10 @@ logLevel=1
   
   #------------------------- TEMP - print out details --------------------------- #
  
-  print(paste("Getting typedef for element name: ",theEName, sep=""))
+  # print(paste("Getting typedef for element name: ",theEName, sep=""))
   
     print("----------------------------------------------------------------")
-    output <- paste("Element:  ",theEName,sep="")
-    print(output)
+    print(paste("Element:  ",theEName,sep=""))
  #--------------end TEMP --------------------------------------------------- #
 
 	eTD <- getDirectTypeDefForElementName(theEName, theXMLdoc, theNamespace)
@@ -433,6 +432,15 @@ logLevel=1
       # First, check if this is a complex type from the schema
       if (isUncertaintyType(theDoc, elTypeDefinition, namespaces, logLevel))
       {
+        # return the original type
+        splittype <- unlist(strsplit(inType, ":"))
+        # Strip off the namespace from the name of the data type if present
+        
+        if (length(splittype) > 1)
+        {
+          inType <- splittype[[2]]
+        }
+        
         elBaseType <- inType
       }
       else 
@@ -705,21 +713,20 @@ logLevel=1
   
   tdToReturn <- typeDef
 
-  if (isUncertaintyType(theDoc,tdToReturn, namespaces, logLevel))
-  {
-    # return the original type
-    splittype <- strsplit(tdToReturn, ":")
-    # Strip off the namespace from the name of the data type if present
-    
-    if (length(splittype[[1]]) > 1) 
-      # If the namespace is present, get the actual name of the data type
-    {
-      tdToReturn <- splittype[[1]][[2]]
-    }
-    list('type'=tdToReturn, 'typedef'=tdToReturn)
-  }
-  else
-  {
+#   if (isUncertaintyType(theDoc,tdToReturn, namespaces, logLevel))
+#   {
+#     #------------------------- TEMP - print out details --------------------------- #
+#     if (logLevel==1)
+#     {
+#       print(paste("GetBaseType: message: "))
+#       print(paste("GetBaseType: got: ",tdToReturn,sep=""))
+#     }
+#     #----------------------------------------------
+#     
+#     list('type'=td, 'typedef'=td)
+#   }
+#   else
+#   {
   	xBase <- getDirectTypeNameForElement(typeDef, theDoc, namespaces, logLevel)
     # Get the name of the data type
     
@@ -766,7 +773,7 @@ logLevel=1
       # TODO check this situation
       #print("No type attribute: returning typedef twice")
   	}
-  }
+#   }
 ### Returns the name of the base type of the element
   
 }
@@ -792,7 +799,7 @@ isUncertaintyType <- function
   #------------------------- TEMP - print out details --------------------------- #
   if (logLevel==2)
   {
-    print(paste("GetBaseType: got: ",xBase,sep=""))
+    print(paste("isUncertaintyType: got: ",xBase,sep=""))
   }
   #----------------------------------------------
   if(xBase =="un:AbstractUncertaintyType")
@@ -813,7 +820,7 @@ isUncertaintyType <- function
         #------------------------- TEMP - print out details --------------------------- #
         if (logLevel==2)
         {
-          print(paste("GetBaseType: Getting typedef for ",xBase,sep=""))
+          print(paste("isUncertaintyType: Getting typedef for ",xBase,sep=""))
         }
         #------------------------------------------------------------------------------ #
         
@@ -828,7 +835,7 @@ isUncertaintyType <- function
           if (substr(xBase, start=1, stop=3)  == 'xs:')
             # If the data type is a basic xs type
           {
-            list('type'=xBase, 'typedef'=tdToReturn)
+            ValueToReturn <- FALSE
           } 
           else
           {

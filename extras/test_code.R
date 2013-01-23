@@ -2,7 +2,7 @@
 # library(inlinedocs)
 # package.skeleton.dx("C:/subversion/Rforge_XML_Schema_reader/xmlSchemaReader")
 
-library ("xmlschemareader")
+library ("xmlschemaHelper")
 
 o <- getAttributesAndElementsForElementName("CentredMoment", "C:/subversion/Rforge_XML_Schema_reader/extras/uncertml.xsd")
 o <- getAttributesAndElementsForElementName("ConfusionMatrix", "C:/subversion/Rforge_XML_Schema_reader/extras/uncertml.xsd")
